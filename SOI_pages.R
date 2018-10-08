@@ -86,6 +86,9 @@ All_All <- left_join(All_All,TV_Spend)
 
 All_Data <- All_All %>% ungroup() %>% rename(ALWAYS.VOL = Vol,SOFY.VOL = `SOFY Vol`,PRIVATE.VOL = `PRIVATE Vol`,ALWAYS.VAL = Val,SOFY.VAL = `SOFY Val`,PRIVATE.VAL = `PRIVATE Val`)
 
+competitive_perf <- All_Data
+
+
 Category_Trend <- All_Data %>% 
   group_by(Month) %>% 
   summarise(Always_Vol = sum(ALWAYS.VOL),Always_Price = mean(PPSU),
@@ -136,13 +139,14 @@ ui <- (navbarPage(title = "Title",
                                # Select which Channel to plot
                                radioButtons(inputId = "brand", 
                                             label = "Select Brand:",
-                                            choices = c("ALWAYS", "SOFY","PRIVATE","ALL"), 
-                                            selected = "ALWAYS")
-                               
+                                            choices = c("ALWAYS", "SOFY","PRIVATE","TOTAL CATEGORY"), 
+                                            selected = "TOTAL CATEGORY")
                              ),
                              mainPanel(
-                               plotOutput(outputId = "lineplot_vol", height = "160px",width = "100%"),
-                               plotOutput(outputId = "lineplot_price", height = "160px",width = "100%"),
+                               fluidRow(
+                                 plotOutput(outputId = "lineplot_vol", height = "160px",width = "100%")),
+                               fluidRow(
+                                 plotOutput(outputId = "lineplot_price", height = "160px",width = "100%")),
                                fluidRow(
                                  splitLayout(cellWidths = c("60%", "30%"), 
                                              plotOutput(outputId = "lineplot_channel", height = "195px"), 
@@ -156,19 +160,19 @@ ui <- (navbarPage(title = "Title",
                            sidebarLayout(
                              sidebarPanel(  
                                # Select which Channel to plot
-                               radioButtons(inputId = "Channel2", 
+                               checkboxGroupInput(inputId = "Channel2", 
                                             label = "Select Channel:",
                                             choices = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"), 
-                                            selected = "PHARMACIES"),
-                               selectInput(inputId = "measure2", 
-                                           label = "Select measure:",
-                                           choices = c("VAL", "VOL"), 
-                                           selected = "VOL")
-                               
+                                            selected = "SUPERMARKETS")
+                              # selectInput(inputId = "measure2", 
+                               #            label = "Select measure:",
+                                #           choices = c("VAL", "VOL"), 
+                                 #          selected = "VOL")
                              ),
                              mainPanel(
                                
                                plotlyOutput(outputId = "lineplot2")
+                              # verbatimTextOutput("value")
                              )
                            )
                   )
@@ -184,7 +188,7 @@ server <- function(input, output, session) {
     if("ALWAYS" %in% input$brand) return (Category_Trend$Always_Vol)
     if("SOFY" %in% input$brand) return (Category_Trend$Sofy_Vol)
     if("PRIVATE" %in% input$brand) return (Category_Trend$Private_Vol)
-    if("ALL" %in% input$brand) return (Category_Trend$All_Vol)
+    if("TOTAL CATEGORY" %in% input$brand) return (Category_Trend$All_Vol)
   })
   
   brand_channel_vol <- reactive({
@@ -192,7 +196,7 @@ server <- function(input, output, session) {
     if("ALWAYS" %in% input$brand) return (All_Data$ALWAYS.VOL)
     if("SOFY" %in% input$brand) return (All_Data$SOFY.VOL)
     if("PRIVATE" %in% input$brand) return (All_Data$PRIVATE.VOL)
-    if("ALL" %in% input$brand) return (All_Data$ALWAYS.VOL + All_Data$PRIVATE.VOL + All_Data$SOFY.VOL)
+    if("TOTAL CATEGORY" %in% input$brand) return (All_Data$ALWAYS.VOL + All_Data$PRIVATE.VOL + All_Data$SOFY.VOL)
   })
   
   single_bar_vol <- reactive({
@@ -200,7 +204,7 @@ server <- function(input, output, session) {
     if("ALWAYS" %in% input$brand) return (Single_Bar$Always_pct)
     if("SOFY" %in% input$brand) return (Single_Bar$Sofy_pct)
     if("PRIVATE" %in% input$brand) return (Single_Bar$Private_pct)
-    if("ALL" %in% input$brand) return (Single_Bar$All_pct)
+    if("TOTAL CATEGORY" %in% input$brand) return (Single_Bar$All_pct)
   })
   
   brand_price <- reactive({
@@ -208,32 +212,32 @@ server <- function(input, output, session) {
     if("ALWAYS" %in% input$brand) return (Category_Trend$Always_Price)
     if("SOFY" %in% input$brand) return (Category_Trend$Sofy_Price)
     if("PRIVATE" %in% input$brand) return (Category_Trend$Private_Price)
-    if("ALL" %in% input$brand) return (Category_Trend$All_Price)
+    if("TOTAL CATEGORY" %in% input$brand) return (Category_Trend$All_Price)
   })
   
   channel_subset2 <- reactive({
     req(input$Channel2)
-    filter(All_Data, Channel %in% input$Channel2)
+    All_Data %>% filter(Channel %in% input$Channel2) %>% group_by(Month) %>% 
+      summarise(ALWAYS.VOL = sum(ALWAYS.VOL), SOFY.VOL = sum(SOFY.VOL), PRIVATE.VOL = sum(PRIVATE.VOL))
   })
   
-  ALWAYS2 <- reactive({
-    if ( "VAL" %in% input$measure2) return(channel_subset2()$ALWAYS.VAL)
-    if ( "VOL" %in% input$measure2) return(channel_subset2()$ALWAYS.VOL)
-  })
+#  ALWAYS2 <- reactive({
+#    if ( "VAL" %in% input$measure2) return(channel_subset2()$ALWAYS.VAL)
+#    if ( "VOL" %in% input$measure2) return(channel_subset2()$ALWAYS.VOL)
+#  })
+#  
+#  SOFY2 <- reactive({
+#    if ( "VAL" %in% input$measure2) return(channel_subset2()$SOFY.VAL)
+#    if ( "VOL" %in% input$measure2) return(channel_subset2()$SOFY.VOL)
+#  })
   
-  SOFY2 <- reactive({
-    if ( "VAL" %in% input$measure2) return(channel_subset2()$SOFY.VAL)
-    if ( "VOL" %in% input$measure2) return(channel_subset2()$SOFY.VOL)
-  })
-  
-  PRIVATE2 <- reactive({
-    if ( "VAL" %in% input$measure2) return(channel_subset2()$PRIVATE.VAL)
-    if ( "VOL" %in% input$measure2) return(channel_subset2()$PRIVATE.VOL)
-  })
+#  PRIVATE2 <- reactive({
+#    if ( "VAL" %in% input$measure2) return(channel_subset2()$PRIVATE.VAL)
+#    if ( "VOL" %in% input$measure2) return(channel_subset2()$PRIVATE.VOL)
+#  })
   
   # Create lineplot object the plotlyOutput function is expecting
   output$lineplot_vol <- renderPlot({
-    
     ggplot(data = Category_Trend, aes(Month)) + 
       geom_line(aes(y = brand_vol(), colour = "VOL")) + ylab(input$brand)  +
       xlab(NULL)+
@@ -284,13 +288,14 @@ server <- function(input, output, session) {
   output$lineplot2 <- renderPlotly({
     
     ggplotly(ggplot(data = channel_subset2(), aes(Month)) + 
-               geom_line(aes(y = ALWAYS2(), colour = "ALWAYS")) + 
-               geom_line(aes(y = SOFY2(), colour = "SOFY")) + 
-               geom_line(aes(y = PRIVATE2(), colour = "PRIVATE")) + 
+               ggtitle(input$Channel2)+
+               geom_line(aes(y = channel_subset2()$ALWAYS.VOL, colour = "ALWAYS")) + 
+               geom_line(aes(y = channel_subset2()$SOFY.VOL, colour = "SOFY")) + 
+               geom_line(aes(y = channel_subset2()$PRIVATE.VOL, colour = "PRIVATE")) + 
                theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
                theme(axis.text.x=element_text(angle=90,hjust=1)))
   })
-  
+ # output$value <- renderPrint({ input$Channel2 })
 }
 
 shinyApp(ui = ui, server = server)
