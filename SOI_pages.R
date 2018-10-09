@@ -156,14 +156,14 @@ ui <- (navbarPage(title = "Title",
                            )
                            
                   ),
-                  tabPanel("Page2",
+                  tabPanel("Competitive Performance",
                            sidebarLayout(
                              sidebarPanel(  
                                # Select which Channel to plot
                                checkboxGroupInput(inputId = "Channel2", 
                                             label = "Select Channel:",
                                             choices = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"), 
-                                            selected = "SUPERMARKETS")
+                                            selected = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"))
                               # selectInput(inputId = "measure2", 
                                #            label = "Select measure:",
                                 #           choices = c("VAL", "VOL"), 
@@ -171,7 +171,7 @@ ui <- (navbarPage(title = "Title",
                              ),
                              mainPanel(
                                
-                               plotlyOutput(outputId = "lineplot2")
+                               plotOutput(outputId = "lineplot2")
                               # verbatimTextOutput("value")
                              )
                            )
@@ -285,15 +285,25 @@ server <- function(input, output, session) {
   })
   
   #   Create lineplot object the plotlyOutput function is expecting
-  output$lineplot2 <- renderPlotly({
+  output$lineplot2 <- renderPlot({
     
-    ggplotly(ggplot(data = channel_subset2(), aes(Month)) + 
-               ggtitle(input$Channel2)+
-               geom_line(aes(y = channel_subset2()$ALWAYS.VOL, colour = "ALWAYS")) + 
-               geom_line(aes(y = channel_subset2()$SOFY.VOL, colour = "SOFY")) + 
-               geom_line(aes(y = channel_subset2()$PRIVATE.VOL, colour = "PRIVATE")) + 
+    ggplot(data = channel_subset2(), aes(Month)) + 
+               geom_line(aes(y = channel_subset2()$ALWAYS.VOL/(channel_subset2()$ALWAYS.VOL + 
+                                                                 channel_subset2()$SOFY.VOL +
+                                                                 channel_subset2()$PRIVATE.VOL
+                                                               ), colour = "ALWAYS")) + 
+               geom_line(aes(y = channel_subset2()$SOFY.VOL/(channel_subset2()$ALWAYS.VOL + 
+                                                               channel_subset2()$SOFY.VOL +
+                                                               channel_subset2()$PRIVATE.VOL
+               ), colour = "SOFY")) + 
+               geom_line(aes(y = channel_subset2()$PRIVATE.VOL/(channel_subset2()$ALWAYS.VOL + 
+                                                                  channel_subset2()$SOFY.VOL +
+                                                                  channel_subset2()$PRIVATE.VOL
+               ), colour = "PRIVATE")) + 
+               ylab("Vol Share") +
+               scale_y_continuous(labels = percent_format())+
                theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
-               theme(axis.text.x=element_text(angle=90,hjust=1)))
+               theme(axis.text.x=element_text(angle=90,hjust=1))
   })
  # output$value <- renderPrint({ input$Channel2 })
 }
