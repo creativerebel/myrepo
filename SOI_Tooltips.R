@@ -148,7 +148,7 @@ ui <- (navbarPage(title = "Title",
                              ),
                              mainPanel(
                                fluidRow(
-                                 plotOutput(outputId = "lineplot_vol", height = "160px",width = "100%")),
+                                 plotlyOutput(outputId = "lineplot_vol", height = "160px",width = "100%")),
                                fluidRow(
                                  plotOutput(outputId = "lineplot_price", height = "160px",width = "100%")),
                                fluidRow(
@@ -196,7 +196,7 @@ ui <- (navbarPage(title = "Title",
                              mainPanel(
                                div(
                                  style = "position:relative",
-                                 plotOutput(outputId = "lineplot3", 
+                                 plotOutput(outputId = "lineplot3", brush = "plot_brush",
                                             hover = hoverOpts("plot_hover", delay = 100, delayType = "debounce")),
                                  uiOutput("hover_info")
                                ),
@@ -272,23 +272,24 @@ server <- function(input, output, session) {
   #  })
   
   # Create lineplot object the plotlyOutput function is expecting
-  output$lineplot_vol <- renderPlot({
-    ggplot(data = Category_Trend, aes(Month)) + 
-      geom_line(aes(y = brand_vol(), colour = "VOL")) + ylab(input$brand)  +
-      xlab(NULL)+
-      theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
-      theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain"))
-    
+  output$lineplot_vol <- renderPlotly({
+    ggplotly(ggplot(data = Category_Trend, aes(Month)) + 
+               geom_line(aes(y = brand_vol(), colour = "VOL")) + ylab(input$brand)  +
+               xlab(NULL)+
+               theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain"))) %>%
+      config(displayModeBar = F) %>% layout(dragmode = "select")
   })
   
   output$lineplot_price <- renderPlot({
-    
+#===========================================plotly_filter==================================================================   
+    # event.data <- event_data("plotly_selected", source = "Category_Trend")
+    #if(is.null(event.data) == T) {return(NULL)}
+    #else{} 
     ggplot(data = Category_Trend, aes(Month)) + 
       geom_line(aes(y = brand_price(), colour = "PRICE")) + ylab(input$brand)  + 
-      xlab(NULL)+
-      theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+      xlab(NULL)+ theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
       theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain"))
-    
   })
   
   output$lineplot_channel <- renderPlot({
@@ -342,12 +343,13 @@ server <- function(input, output, session) {
   })
   
   output$lineplot3 <- renderPlot({
-    ggplot(data = National_Data, aes(x = Month, y = Always_Vol)) + 
-      geom_line()
+    ggplot(data = channel_subset3()) + 
+      geom_line( aes(x = Month, y = ALWAYS.VOL))+ geom_point( aes(x = Month, y = ALWAYS.VOL))+
+      geom_line( aes(x = Month, y = SOFY.VOL))+ geom_point( aes(x = Month, y = SOFY.VOL))
   })
   output$hover_info <- renderUI({
     hover <- input$plot_hover
-    point <- nearPoints(National_Data, hover, threshold = 5, maxpoints = 1, addDist = TRUE)
+    point <- nearPoints(channel_subset3(), hover, threshold = 5, maxpoints = 1, addDist = TRUE)
     if (nrow(point) == 0) return(NULL)
     
     # calculate point position INSIDE the image as percent of total dimensions
@@ -368,13 +370,13 @@ server <- function(input, output, session) {
     # actual tooltip created as wellPanel
     wellPanel(
       style = style,
-      p(HTML(paste0("<b> Always Vol: </b>", point$Always_Vol, "<br/>",
-                    "<b> Distance from left: </b>", left_px, "<b>, from top: </b>", top_px)))
+      #if()
+      p(HTML(paste0("<b> Always Vol: </b>", point$SOFY.VOL, "<br/>"
+                    #,"<b> Distance from left: </b>", left_px, "<b>, from top: </b>", top_px
+      )))
     )
   })
-  
-  
-  # output$value <- renderPrint({ input$Channel2 })
+  #output$value <- renderPrint({ input$Channel2 })
 }
 
 shinyApp(ui = ui, server = server)
