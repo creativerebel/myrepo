@@ -1,7 +1,7 @@
-library(dplyr)
-library(reshape2)
-library(readxl)
-library(tidyr)
+require(dplyr)
+require(reshape2)
+require(readxl)
+require(tidyr)
 
 #==================================================Import Raw Files===============================================
 
@@ -108,7 +108,7 @@ Single_Bar <- All_Data %>% group_by(Channel) %>%
 National_Data <- All_Data %>% group_by(Month) %>% summarise(Always_Vol = sum(ALWAYS.VOL),
                                                             Sofy_Vol = sum(SOFY.VOL),
                                                             Private_Vol = sum(PRIVATE.VOL))
-
+list_cols = list(colnames(All_Data%>%select(-Month,-Channel,-Brand)))
 #a <- Single_bar #%>%
 #Pharmacies_All <- All_All %>% filter(Channel == 'PHARMACIES') %>% ungroup() %>% select(-Brand,-Channel)
 #PHARMACIES <- Pharmacies_All %>% select(Month,Vol,`PRIVATE Vol`,`SOFY Vol`) %>% rename(ALWAYS = Vol,SOFY = `SOFY Vol`,PRIVATE = `PRIVATE Vol`) #%>% gather("Brand",Volume,2:4)
@@ -129,11 +129,11 @@ National_Data <- All_Data %>% group_by(Month) %>% summarise(Always_Vol = sum(ALW
 
 #=====================================Shiny Starts Here============================================================================
 
-library(ggplot2)
-library(scales)
-library(plotly)
-library(shiny)
-library(shinythemes)
+require(ggplot2)
+require(scales)
+require(plotly)
+require(shiny)
+require(shinythemes)
 
 ui <- (navbarPage(title = "Title", 
                   #fluid = TRUE,
@@ -144,18 +144,18 @@ ui <- (navbarPage(title = "Title",
                                radioButtons(inputId = "brand", 
                                             label = "Select Brand:",
                                             choices = c("ALWAYS", "SOFY","PRIVATE","TOTAL CATEGORY"), 
-                                            selected = "TOTAL CATEGORY")
+                                            selected = "TOTAL CATEGORY"),width = 2
                              ),
                              mainPanel(
                                fluidRow(
                                  plotlyOutput(outputId = "lineplot_vol", height = "275px",width = "100%")),
-                              # fluidRow(
+                               # fluidRow(
                                #  plotlyOutput(outputId = "lineplot_price", height = "210px",width = "100%")),
                                fluidRow(
                                  splitLayout(cellWidths = c("75%", "22%"), 
                                              plotlyOutput(outputId = "lineplot_channel", height = "275px"), 
                                              plotlyOutput(outputId = "single_bar", height = "275px"))
-                               )
+                               ),width = 10
                              )
                            )
                            
@@ -175,19 +175,29 @@ ui <- (navbarPage(title = "Title",
                              ),
                              mainPanel(
                                
-                               plotlyOutput(outputId = "lineplot2")
-                               # verbatimTextOutput("value")
+                               plotlyOutput(outputId = "lineplot2"),
+                               plotlyOutput(outputId = "scatterplot")
                              )
                            )
                   ),
-                  tabPanel("Competitive Performance",
+                  tabPanel("Bivariate",
                            sidebarLayout(
                              sidebarPanel(  
                                # Select which Channel to plot
-                               checkboxGroupInput(inputId = "Channel3", 
+                               checkboxGroupInput(inputId = "Channel4", 
                                                   label = "Select Channel:",
                                                   choices = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"), 
                                                   selected = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"))
+                               
+                               
+                               ,selectInput(inputId = "x", 
+                                            label = "Select X Axis:",
+                                            choices = c(colnames(All_Data%>%select(-Month,-Channel,-Brand))), 
+                                            selected = "ALWAYS.VOL")
+                               ,selectInput(inputId = "y", 
+                                            label = "Select Y Axis:",
+                                            choices = c(colnames(All_Data%>%select(-Month,-Channel,-Brand))), 
+                                            selected = "SOFY.VOL")
                                # selectInput(inputId = "measure2", 
                                #            label = "Select measure:",
                                #           choices = c("VAL", "VOL"), 
@@ -248,6 +258,10 @@ server <- function(input, output, session) {
       summarise(ALWAYS.VOL = sum(ALWAYS.VOL), SOFY.VOL = sum(SOFY.VOL), PRIVATE.VOL = sum(PRIVATE.VOL))
   })
   
+  channel_subset4 <- reactive({
+    req(input$Channel4)
+    All_Data %>% filter(Channel %in% input$Channel4)})
+  
   channel_subset3 <- reactive({
     req(input$Channel3)
     All_Data %>% filter(Channel %in% input$Channel3) %>% group_by(Month) %>% 
@@ -274,9 +288,9 @@ server <- function(input, output, session) {
   
   output$lineplot_vol <- renderPlotly({
     plot_ly(data = Category_Trend, x = ~Month, y = ~brand_vol(),
-            type = "scatter", mode = "lines", width = 800, color = I("red"),
-            name = "VOL") %>% add_trace(x=~Month, y = ~brand_price(), 
-                                        yaxis = "y2",color = I("blue"), name = "Price")%>%
+            type = "scatter", mode = "lines", width = 1100, color = I("red"),
+            name = "VOL", title = "Category Trend") %>% add_trace(x=~Month, y = ~brand_price(), 
+                                                                  yaxis = "y2",color = I("blue"), name = "Price")%>%
       add_markers(x=~Month, y = ~brand_price(), 
                   yaxis = "y2",color = I("blue"), name = "Price")%>%
       add_markers(x=~Month, y = ~brand_vol(),color = I("red"), name = "Volume")%>%
@@ -289,8 +303,6 @@ server <- function(input, output, session) {
       )%>%config(displayModeBar = F) %>% layout(dragmode = "select",showlegend=FALSE)
   })
   
-  
-  
   #  output$lineplot_vol <- renderPlotly({
   #    ggplotly(ggplot(data = Category_Trend, aes(Month)) + 
   #               geom_line(aes(y = brand_vol(), colour = "VOL")) + ylab(input$brand)  +
@@ -300,17 +312,17 @@ server <- function(input, output, session) {
   #      config(displayModeBar = F) %>% layout(dragmode = "select")
   #  })
   
- # output$lineplot_price <- renderPlotly({
-    #===========================================plotly_filter==================================================================   
-    # event.data <- event_data("plotly_selected", source = "Category_Trend")
-    #if(is.null(event.data) == T) {return(NULL)}
-    #else{} 
-#    ggplotly(ggplot(data = Category_Trend, aes(Month)) + 
-#               geom_line(aes(y = brand_price(), colour = "PRICE")) + ylab(input$brand)  + 
-#               xlab(NULL)+ theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
-#               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain")))%>%
-#      config(displayModeBar = F) %>% layout(dragmode = "select")
-#  })
+  # output$lineplot_price <- renderPlotly({
+  #===========================================plotly_filter==================================================================   
+  # event.data <- event_data("plotly_selected", source = "Category_Trend")
+  #if(is.null(event.data) == T) {return(NULL)}
+  #else{} 
+  #    ggplotly(ggplot(data = Category_Trend, aes(Month)) + 
+  #               geom_line(aes(y = brand_price(), colour = "PRICE")) + ylab(input$brand)  + 
+  #               xlab(NULL)+ theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+  #               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain")))%>%
+  #      config(displayModeBar = F) %>% layout(dragmode = "select")
+  #  })
   
   output$lineplot_channel <- renderPlotly({
     ggplotly(ggplot(data = All_Data, aes(x = Month, y = brand_channel_vol(), color = Channel)) + 
@@ -365,12 +377,23 @@ server <- function(input, output, session) {
       config(displayModeBar = F) %>% layout(dragmode = "select")
   })
   
+  
+  #   Create scatter plot object the plotlyOutput function is expecting
+ # output$scatterplot <- renderPlotly({
+  #  ggplotly(ggplot(data = All_Data, aes(input$Measures,SOFY.VOL))+
+   #            geom_point()+
+    #           theme(axis.text.x=element_text(angle=90,hjust=1)))%>%
+     # config(displayModeBar = F) %>% layout(dragmode = "select")
+#  })
+  
   output$lineplot3 <- renderPlotly({
-    ggplotly(ggplot(data = channel_subset3()) + 
-               geom_line( aes(x = Month, y = ALWAYS.VOL))+ geom_point( aes(x = Month, y = ALWAYS.VOL))+
-               geom_line( aes(x = Month, y = SOFY.VOL))+ geom_point( aes(x = Month, y = SOFY.VOL)))%>%
+    ggplotly(ggplot(data = channel_subset4(), aes_string(x=input$x,y=input$y))+
+               geom_point()+
+               theme(axis.text.x=element_text(angle=90,hjust=1)))%>%
       config(displayModeBar = F) %>% layout(dragmode = "select")
   })
+  
+  
   output$hover_info <- renderUI({
     hover <- input$plot_hover
     point <- nearPoints(channel_subset3(), hover, threshold = 5, maxpoints = 1, addDist = TRUE)

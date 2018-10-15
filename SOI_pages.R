@@ -105,6 +105,8 @@ Single_Bar <- All_Data %>% group_by(Channel) %>%
          Private_pct = Private_Vol/sum(Private_Vol),
          All_pct = All_Vol/sum(All_Vol))
 
+
+
 #a <- Single_bar #%>%
 #Pharmacies_All <- All_All %>% filter(Channel == 'PHARMACIES') %>% ungroup() %>% select(-Brand,-Channel)
 #PHARMACIES <- Pharmacies_All %>% select(Month,Vol,`PRIVATE Vol`,`SOFY Vol`) %>% rename(ALWAYS = Vol,SOFY = `SOFY Vol`,PRIVATE = `PRIVATE Vol`) #%>% gather("Brand",Volume,2:4)
