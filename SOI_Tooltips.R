@@ -148,13 +148,13 @@ ui <- (navbarPage(title = "Title",
                              ),
                              mainPanel(
                                fluidRow(
-                                 plotlyOutput(outputId = "lineplot_vol", height = "160px",width = "100%")),
+                                 plotlyOutput(outputId = "lineplot_vol", height = "275px",width = "100%")),
+                              # fluidRow(
+                               #  plotlyOutput(outputId = "lineplot_price", height = "210px",width = "100%")),
                                fluidRow(
-                                 plotOutput(outputId = "lineplot_price", height = "160px",width = "100%")),
-                               fluidRow(
-                                 splitLayout(cellWidths = c("60%", "30%"), 
-                                             plotOutput(outputId = "lineplot_channel", height = "195px"), 
-                                             plotOutput(outputId = "single_bar", height = "195px"))
+                                 splitLayout(cellWidths = c("75%", "22%"), 
+                                             plotlyOutput(outputId = "lineplot_channel", height = "275px"), 
+                                             plotlyOutput(outputId = "single_bar", height = "275px"))
                                )
                              )
                            )
@@ -175,7 +175,7 @@ ui <- (navbarPage(title = "Title",
                              ),
                              mainPanel(
                                
-                               plotOutput(outputId = "lineplot2")
+                               plotlyOutput(outputId = "lineplot2")
                                # verbatimTextOutput("value")
                              )
                            )
@@ -196,9 +196,7 @@ ui <- (navbarPage(title = "Title",
                              mainPanel(
                                div(
                                  style = "position:relative",
-                                 plotOutput(outputId = "lineplot3", brush = "plot_brush",
-                                            hover = hoverOpts("plot_hover", delay = 100, delayType = "debounce")),
-                                 uiOutput("hover_info")
+                                 plotlyOutput(outputId = "lineplot3")
                                ),
                                width = 7
                                # verbatimTextOutput("value")
@@ -272,80 +270,106 @@ server <- function(input, output, session) {
   #  })
   
   # Create lineplot object the plotlyOutput function is expecting
+  
+  
   output$lineplot_vol <- renderPlotly({
-    ggplotly(ggplot(data = Category_Trend, aes(Month)) + 
-               geom_line(aes(y = brand_vol(), colour = "VOL")) + ylab(input$brand)  +
-               xlab(NULL)+
-               theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
-               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain"))) %>%
-      config(displayModeBar = F) %>% layout(dragmode = "select")
+    plot_ly(data = Category_Trend, x = ~Month, y = ~brand_vol(),
+            type = "scatter", mode = "lines", width = 800, color = I("red"),
+            name = "VOL") %>% add_trace(x=~Month, y = ~brand_price(), 
+                                        yaxis = "y2",color = I("blue"), name = "Price")%>%
+      add_markers(x=~Month, y = ~brand_price(), 
+                  yaxis = "y2",color = I("blue"), name = "Price")%>%
+      add_markers(x=~Month, y = ~brand_vol(),color = I("red"), name = "Volume")%>%
+      layout(yaxis = list(
+        showline = FALSE, side = "left", title = "VOL", color = "red"
+      ),
+      yaxis2 = list(
+        showline = FALSE, side = "right",overlaying = "y", title = "Price", color = "blue"
+      ),margin = list(l=25,r=50,b=25,t=25,pad=4)
+      )%>%config(displayModeBar = F) %>% layout(dragmode = "select",showlegend=FALSE)
   })
   
-  output$lineplot_price <- renderPlot({
-#===========================================plotly_filter==================================================================   
+  
+  
+  #  output$lineplot_vol <- renderPlotly({
+  #    ggplotly(ggplot(data = Category_Trend, aes(Month)) + 
+  #               geom_line(aes(y = brand_vol(), colour = "VOL")) + ylab(input$brand)  +
+  #               xlab(NULL)+
+  #               theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+  #               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain"))) %>%
+  #      config(displayModeBar = F) %>% layout(dragmode = "select")
+  #  })
+  
+ # output$lineplot_price <- renderPlotly({
+    #===========================================plotly_filter==================================================================   
     # event.data <- event_data("plotly_selected", source = "Category_Trend")
     #if(is.null(event.data) == T) {return(NULL)}
     #else{} 
-    ggplot(data = Category_Trend, aes(Month)) + 
-      geom_line(aes(y = brand_price(), colour = "PRICE")) + ylab(input$brand)  + 
-      xlab(NULL)+ theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
-      theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain"))
-  })
+#    ggplotly(ggplot(data = Category_Trend, aes(Month)) + 
+#               geom_line(aes(y = brand_price(), colour = "PRICE")) + ylab(input$brand)  + 
+#               xlab(NULL)+ theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+#               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain")))%>%
+#      config(displayModeBar = F) %>% layout(dragmode = "select")
+#  })
   
-  output$lineplot_channel <- renderPlot({
-    ggplot(data = All_Data, aes(x = Month, y = brand_channel_vol(), color = Channel)) + 
-      geom_line() + 
-      ylab(input$brand)  + 
-      xlab(NULL)+
-      theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
-      theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,vjust=.5,face="plain"),
-            legend.position="none")
+  output$lineplot_channel <- renderPlotly({
+    ggplotly(ggplot(data = All_Data, aes(x = Month, y = brand_channel_vol(), color = Channel)) + 
+               geom_line() + 
+               ylab(input$brand)  + 
+               xlab(NULL)+
+               theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,
+                                                vjust=.5,face="plain"),legend.title = element_text(colour="black", size = 10, face='bold')
+                     ,legend.text = element_text(colour="black", size = 8, face='bold')))%>%
+      config(displayModeBar = F) %>% layout(dragmode = "select")
     
   })
   
-  output$single_bar <- renderPlot({
-    ggplot(data = Single_Bar,aes(x = 1,y=single_bar_vol(),fill = Channel)) +
-      geom_col() +
-      geom_text(aes(label=paste(round((single_bar_vol())*100), "%")),position = position_stack(vjust = .5),
-                colour="white") +
-      #geom_bar(aes(fill=Channel),position="fill",stat="identity",label = percent_format()) +
-      #geom_text(aes(label = paste(round((single_bar_vol())*100), "%")),
-      #          position=position_stack(vjust = 0.5), colour="white")+
-      ylab(input$brand)  + 
-      xlab(NULL) +
-      theme_linedraw() +
-      theme(axis.title.x=element_blank(), axis.text.x=element_blank(),
-            axis.ticks.x=element_blank(), axis.ticks.y=element_blank(),
-            axis.text.y=element_blank(), legend.position="left")
+  output$single_bar <- renderPlotly({
+    ggplotly(ggplot(data = Single_Bar,aes(x = 1,y=single_bar_vol(),fill = Channel)) +
+               geom_col() +
+               geom_text(aes(label=paste(round((single_bar_vol())*100), "%")),position = position_stack(vjust = .5),
+                         colour="white") +
+               #geom_bar(aes(fill=Channel),position="fill",stat="identity",label = percent_format()) +
+               #geom_text(aes(label = paste(round((single_bar_vol())*100), "%")),
+               #          position=position_stack(vjust = 0.5), colour="white")+
+               ylab(input$brand)  + 
+               xlab(NULL) +
+               theme_linedraw() +
+               theme(axis.title.x=element_blank(), axis.text.x=element_blank(),
+                     axis.ticks.x=element_blank(), axis.ticks.y=element_blank(),
+                     axis.text.y=element_blank(), legend.position="none"))%>%
+      config(displayModeBar = F) %>% layout(dragmode = "select")
     #scale_y_continuous(labels = percent_format())
   })
   
   #   Create lineplot object the plotlyOutput function is expecting
-  output$lineplot2 <- renderPlot({
-    
-    ggplot(data = channel_subset2(), aes(Month)) + 
-      geom_line(aes(y = channel_subset2()$ALWAYS.VOL/(channel_subset2()$ALWAYS.VOL + 
-                                                        channel_subset2()$SOFY.VOL +
-                                                        channel_subset2()$PRIVATE.VOL
-      ), colour = "ALWAYS")) + 
-      geom_line(aes(y = channel_subset2()$SOFY.VOL/(channel_subset2()$ALWAYS.VOL + 
-                                                      channel_subset2()$SOFY.VOL +
-                                                      channel_subset2()$PRIVATE.VOL
-      ), colour = "SOFY")) + 
-      geom_line(aes(y = channel_subset2()$PRIVATE.VOL/(channel_subset2()$ALWAYS.VOL + 
-                                                         channel_subset2()$SOFY.VOL +
-                                                         channel_subset2()$PRIVATE.VOL
-      ), colour = "PRIVATE")) + 
-      ylab("Vol Share") +
-      scale_y_continuous(labels = percent_format())+
-      theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
-      theme(axis.text.x=element_text(angle=90,hjust=1))
+  output$lineplot2 <- renderPlotly({
+    ggplotly(ggplot(data = channel_subset2(), aes(Month)) + 
+               geom_line(aes(y = channel_subset2()$ALWAYS.VOL/(channel_subset2()$ALWAYS.VOL + 
+                                                                 channel_subset2()$SOFY.VOL +
+                                                                 channel_subset2()$PRIVATE.VOL
+               ), colour = "ALWAYS")) + 
+               geom_line(aes(y = channel_subset2()$SOFY.VOL/(channel_subset2()$ALWAYS.VOL + 
+                                                               channel_subset2()$SOFY.VOL +
+                                                               channel_subset2()$PRIVATE.VOL
+               ), colour = "SOFY")) + 
+               geom_line(aes(y = channel_subset2()$PRIVATE.VOL/(channel_subset2()$ALWAYS.VOL + 
+                                                                  channel_subset2()$SOFY.VOL +
+                                                                  channel_subset2()$PRIVATE.VOL
+               ), colour = "PRIVATE")) + 
+               ylab("Vol Share") +
+               scale_y_continuous(labels = percent_format())+
+               theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+               theme(axis.text.x=element_text(angle=90,hjust=1)))%>%
+      config(displayModeBar = F) %>% layout(dragmode = "select")
   })
   
-  output$lineplot3 <- renderPlot({
-    ggplot(data = channel_subset3()) + 
-      geom_line( aes(x = Month, y = ALWAYS.VOL))+ geom_point( aes(x = Month, y = ALWAYS.VOL))+
-      geom_line( aes(x = Month, y = SOFY.VOL))+ geom_point( aes(x = Month, y = SOFY.VOL))
+  output$lineplot3 <- renderPlotly({
+    ggplotly(ggplot(data = channel_subset3()) + 
+               geom_line( aes(x = Month, y = ALWAYS.VOL))+ geom_point( aes(x = Month, y = ALWAYS.VOL))+
+               geom_line( aes(x = Month, y = SOFY.VOL))+ geom_point( aes(x = Month, y = SOFY.VOL)))%>%
+      config(displayModeBar = F) %>% layout(dragmode = "select")
   })
   output$hover_info <- renderUI({
     hover <- input$plot_hover
