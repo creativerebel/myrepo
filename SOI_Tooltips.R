@@ -12,6 +12,17 @@ Dist_Always_item_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction
 Dist_Always_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Data_Sample1 (2).csv")
 
 GRP_raw = read_excel("/home/fractaluser/Documents/SOI/Data Extraction/Explicit_Data.xlsx",sheet = "GRP")
+
+colnames(GRP_raw) = c("Month","Actual_GRPs_Brand","Actual_GRPs_Category")
+GRP_raw$adstock[[1]]<- GRP_raw$Actual_GRPs_Brand[[1]]
+
+GRP_raw$adstock<-as.numeric(GRP_raw$adstock)
+for(i in 2:nrow(GRP_raw)){
+  GRP_raw$adstock[i]= GRP_raw$Actual_GRPs_Brand[i]+(0.45*(GRP_raw$adstock[i-1]))
+}
+
+GRP_raw <- GRP_raw %>% select("Month", "adstock")
+
 Macro_raw = read_excel("/home/fractaluser/Documents/SOI/Data Extraction/Explicit_Data.xlsx",sheet = "Macro-economic data")
 TV_reach_raw = read_excel("/home/fractaluser/Documents/SOI/Data Extraction/Explicit_Data.xlsx",sheet = "TV Spends & Reach+1")
 
@@ -387,9 +398,9 @@ server <- function(input, output, session) {
 #  })
   
   output$lineplot3 <- renderPlotly({
-    ggplotly(ggplot(data = channel_subset4(), aes_string(x=input$x,y=input$y))+
-               geom_point()+
-               theme(axis.text.x=element_text(angle=90,hjust=1)))%>%
+    ggplotly(ggplot(data = channel_subset4(), aes_string(x=input$x,y=input$y,color = channel_subset4()$Channel))+
+               geom_point()+theme_linedraw() +
+               theme(axis.text.x=element_text(hjust=1)))%>%
       config(displayModeBar = F) %>% layout(dragmode = "select")
   })
   
