@@ -2,6 +2,7 @@ require(dplyr)
 require(reshape2)
 require(readxl)
 require(tidyr)
+require(lattice)
 
 #==================================================Import Raw Files===============================================
 
@@ -148,6 +149,7 @@ require(shinythemes)
 
 ui <- (navbarPage(title = "Title", 
                   #fluid = TRUE,
+                  #==============================================Tab 1=============================================================                                    
                   tabPanel("Overall Category Trends",
                            sidebarLayout(
                              sidebarPanel(  
@@ -171,6 +173,7 @@ ui <- (navbarPage(title = "Title",
                            )
                            
                   ),
+                  #==============================================Tab 2=============================================================                  
                   tabPanel("Competitive Performance",
                            sidebarLayout(
                              sidebarPanel(  
@@ -183,14 +186,35 @@ ui <- (navbarPage(title = "Title",
                                #            label = "Select measure:",
                                #           choices = c("VAL", "VOL"), 
                                #          selected = "VOL")
-                             ),
+                               ,width = 2),
                              mainPanel(
                                
-                               plotlyOutput(outputId = "lineplot2"),
-                               plotlyOutput(outputId = "scatterplot")
+                               plotlyOutput(outputId = "lineplot2")#,
+                               #plotlyOutput(outputId = "lineplot3")
+                               ,width = 10)
+                           )
+                  ),
+                  #==============================================Tab 3=============================================================                                    
+                  tabPanel("Univariate",
+                           sidebarLayout(
+                             sidebarPanel(  
+                               # Select which Channel to plot
+                               selectInput(inputId = "x1", 
+                                            label = "Select X Axis:",
+                                            choices = c(colnames(All_Data%>%select(-Month,-Channel,-Brand))), 
+                                            selected = "ALWAYS.VOL")
+                               ,width = 2),
+                             mainPanel(
+                               div(
+                                 style = "position:relative",
+                                 plotlyOutput(outputId = "lineplot3")
+                               ),
+                               width = 10
+                               # verbatimTextOutput("value")
                              )
                            )
                   ),
+                  #==============================================Tab 4=============================================================                  
                   tabPanel("Bivariate",
                            sidebarLayout(
                              sidebarPanel(  
@@ -217,7 +241,7 @@ ui <- (navbarPage(title = "Title",
                              mainPanel(
                                div(
                                  style = "position:relative",
-                                 plotlyOutput(outputId = "lineplot3")
+                                 plotlyOutput(outputId = "scatterplot")
                                ),
                                width = 7
                                # verbatimTextOutput("value")
@@ -389,17 +413,22 @@ server <- function(input, output, session) {
   })
   
   
+  # attach(mtcars)
   #   Create scatter plot object the plotlyOutput function is expecting
- # output$scatterplot <- renderPlotly({
-  #  ggplotly(ggplot(data = All_Data, aes(input$Measures,SOFY.VOL))+
-   #            geom_point()+
-    #           theme(axis.text.x=element_text(angle=90,hjust=1)))%>%
-     # config(displayModeBar = F) %>% layout(dragmode = "select")
-#  })
-  
   output$lineplot3 <- renderPlotly({
+    ggplotly(ggplot(data=All_Data) + 
+               geom_density(aes_string(x=input$x1, group="Channel", fill="Channel"), 
+                            alpha=0.5, adjust=2) +
+               facet_grid(~Channel) + 
+               labs("MEI", "Density") + 
+               theme_bw())%>%
+      config(displayModeBar = F) %>% layout(dragmode = "select")
+  })
+  
+  #   Create scatter plot object the plotlyOutput function is expecting
+  output$scatterplot <- renderPlotly({
     ggplotly(ggplot(data = channel_subset4(), aes_string(x=input$x,y=input$y,color = channel_subset4()$Channel))+
-               geom_point()+theme_linedraw() +
+               geom_point()+theme_bw() +
                theme(axis.text.x=element_text(hjust=1)))%>%
       config(displayModeBar = F) %>% layout(dragmode = "select")
   })
