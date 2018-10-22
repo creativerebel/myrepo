@@ -17,7 +17,6 @@ Dist_Comp_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Al
 SFT_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SFT.csv")
 Dist_Always_item_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Data_Sample_item.csv")
 Dist_Always_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Data_Sample1 (2).csv")
-
 GRP_raw = read_excel("/home/fractaluser/Documents/SOI/Data Extraction/Explicit_Data.xlsx",sheet = "GRP")
 
 #colnames(GRP_raw) = c("Month","Actual_GRPs_Brand","Actual_GRPs_Category")
@@ -130,7 +129,16 @@ National_Data <- All_Data %>% group_by(Month) %>% summarise(Always_Vol = sum(ALW
                                                             Sofy_Vol = sum(SOFY.VOL),
                                                             Private_Vol = sum(PRIVATE.VOL))
 
-All_Data <- All_Data %>% rename(SOFY.WD = `SOFY WD`, SOFY.TDP = `SOFY TDP`, SOFY.PPSU = `SOFY PPSU`)
+All_Data <- All_Data %>% rename(SOFY.WD = `SOFY WD`, SOFY.TDP = `SOFY TDP`, SOFY.PPSU = `SOFY PPSU`,SOFY.ND = `SOFY ND`,
+                                PRIVATE.WD = `PRIVATE WD`, PRIVATE.TDP = `PRIVATE TDP`, PRIVATE.PPSU = `PRIVATE PPSU`,PRIVATE.ND = `PRIVATE ND`,
+                                GDP = `Real GDP`, GDP.Growth.Rate = `GDP Growth Rate`, ALWAYS.DISPLAY = `ALWAYS Display`,
+                                ALWAYS.FEATURE = `ALWAYS Feature`,ALWAYS.SHARE.OF.DISPLAY = `ALWAYS Share.of.Display`,
+                                ALWAYS.SHARE.OF.FEATURES = `ALWAYS Share.of.Features`,ALWAYS.SHARE.OF.SHELF = `ALWAYS Share.of.Shelf`,
+                                GRP.BRAND = `Actual GRPs (Brand)`,ALWAYS.ND = ND, ALWAYS.WD = WD, ALWAYS.PPSU = PPSU) %>%
+  select(Channel, ALWAYS.ND, ALWAYS.WD,ALWAYS.PPSU,Brand, Month, TDP, ALWAYS.VAL,SOFY.VOL,PRIVATE.VOL,ALWAYS.VOL, SOFY.WD,SOFY.TDP,SOFY.PPSU,SOFY.ND,PRIVATE.WD,PRIVATE.TDP,PRIVATE.PPSU,PRIVATE.ND,GDP,GDP.Growth.Rate,ALWAYS.DISPLAY,
+         ALWAYS.FEATURE,ALWAYS.SHARE.OF.DISPLAY,ALWAYS.SHARE.OF.FEATURES,ALWAYS.SHARE.OF.SHELF,GRP.BRAND,Population, TVSpends_NonWoven, TVSpends_Mainline, TVSpends_Total,
+         Reach1_Brand)
+
 
 
 #=====================================Shiny Starts Here============================================================================
@@ -182,7 +190,7 @@ ui <- (navbarPage(title = "Title",
                            )
                   ),
                   #==============================================Tab 3=============================================================                                    
-                  tabPanel("Univariate",
+                  tabPanel("Descriptive Statistics",
                            sidebarLayout(
                              sidebarPanel(  
                                # Select which Channel to plot
@@ -210,7 +218,7 @@ ui <- (navbarPage(title = "Title",
                                  )
                                  ,fluidRow(
                                    splitLayout(#cellWidths = c("75%", "22%"), 
-                                               plotlyOutput(outputId = "placeholder1", height = "275px") )
+                                     plotlyOutput(outputId = "placeholder1", height = "275px") )
                                    #             ,plotlyOutput(outputId = "placeholder2", height = "275px")
                                  )
                                ),
@@ -220,7 +228,7 @@ ui <- (navbarPage(title = "Title",
                            )
                   ),
                   #==============================================Tab 4=============================================================                  
-                  tabPanel("Bivariate",
+                  tabPanel("Placeholder",
                            sidebarLayout(
                              sidebarPanel(  
                                
@@ -282,15 +290,12 @@ server <- function(input, output, session) {
   channel_subset4 <- reactive({
     req(input$Channel4)
     All_Data %>% filter(Channel %in% input$Channel4) 
-    })
+  })
   
   channel_subset5 <- reactive({
     req(input$Channel4)
-    All_Data %>% filter(Channel %in% input$Channel4) %>% group_by(Month) %>% 
-      summarise(ALWAYS.VOL = sum(ALWAYS.VOL), SOFY.VOL = sum(SOFY.VOL), PRIVATE.VOL = sum(PRIVATE.VOL)
-                ,TDP = sum(TDP), ALWAYS.VAL = sum(ALWAYS.VAL) 
-      )
-      
+    All_Data %>%select(-Brand)%>% filter(Channel %in% input$Channel4) %>% group_by(Month) %>% 
+      summarise(ALWAYS.WD = sum( ALWAYS.WD), ALWAYS.ND = sum( ALWAYS.ND),ALWAYS.PPSU = sum(ALWAYS.PPSU), TDP = sum( TDP), ALWAYS.VAL = sum( ALWAYS.VAL),SOFY.VOL = sum(SOFY.VOL),PRIVATE.VOL = sum(PRIVATE.VOL),ALWAYS.VOL = sum(ALWAYS.VOL), SOFY.WD = sum( SOFY.WD),SOFY.TDP = sum(SOFY.TDP),SOFY.PPSU = sum(SOFY.PPSU),SOFY.ND = sum(SOFY.ND),PRIVATE.WD = sum(PRIVATE.WD),PRIVATE.TDP = sum(PRIVATE.TDP),PRIVATE.PPSU = sum(PRIVATE.PPSU),PRIVATE.ND = sum(PRIVATE.ND),GDP = sum(GDP),GDP.Growth.Rate = sum(GDP.Growth.Rate),ALWAYS.DISPLAY = sum(ALWAYS.DISPLAY))
   })
   
   
@@ -432,7 +437,7 @@ server <- function(input, output, session) {
   })
   
   output$placeholder1 <- renderPlotly({
-    plot_ly(data = channel_subset4(), x = ~Month, y = ~get(input$x),
+    plot_ly(data = channel_subset5(), x = ~Month, y = ~get(input$x),
             type = "scatter", mode = "lines", width = 1100, color = I("red"),
             name = input$x, title = "Category Trend") %>% 
       add_trace(x=~Month, y = ~get(input$y), yaxis = "y2",color = I("blue"), name = input$y)%>%
