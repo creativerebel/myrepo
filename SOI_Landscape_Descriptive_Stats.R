@@ -130,6 +130,9 @@ National_Data <- All_Data %>% group_by(Month) %>% summarise(Always_Vol = sum(ALW
                                                             Sofy_Vol = sum(SOFY.VOL),
                                                             Private_Vol = sum(PRIVATE.VOL))
 
+All_Data <- All_Data %>% rename(SOFY.WD = `SOFY WD`, SOFY.TDP = `SOFY TDP`, SOFY.PPSU = `SOFY PPSU`)
+
+
 #=====================================Shiny Starts Here============================================================================
 
 ui <- (navbarPage(title = "Title", 
@@ -183,7 +186,7 @@ ui <- (navbarPage(title = "Title",
                            sidebarLayout(
                              sidebarPanel(  
                                # Select which Channel to plot
-                          
+                               
                                checkboxGroupInput(inputId = "Channel4", 
                                                   label = "Select Channel:",
                                                   choices = c(unique(as.character(All_Data$Channel))), 
@@ -206,10 +209,10 @@ ui <- (navbarPage(title = "Title",
                                                plotlyOutput(outputId = "scatterplot", height = "275px"))
                                  )
                                  ,fluidRow(
-                                   splitLayout(cellWidths = c("75%", "22%"), 
-                                  #             plotlyOutput(outputId = "placeholder1", height = "275px"), 
-                                  #             plotlyOutput(outputId = "placeholder2", height = "275px"))
-                                 #)
+                                   splitLayout(#cellWidths = c("75%", "22%"), 
+                                               plotlyOutput(outputId = "placeholder1", height = "275px") )
+                                   #             ,plotlyOutput(outputId = "placeholder2", height = "275px")
+                                 )
                                ),
                                width = 10
                                # verbatimTextOutput("value")
@@ -220,7 +223,7 @@ ui <- (navbarPage(title = "Title",
                   tabPanel("Bivariate",
                            sidebarLayout(
                              sidebarPanel(  
-                              
+                               
                              ),
                              mainPanel(
                                div(
@@ -278,12 +281,26 @@ server <- function(input, output, session) {
   
   channel_subset4 <- reactive({
     req(input$Channel4)
-    All_Data %>% filter(Channel %in% input$Channel4)})
+    All_Data %>% filter(Channel %in% input$Channel4) 
+    })
+  
+  channel_subset5 <- reactive({
+    req(input$Channel4)
+    All_Data %>% filter(Channel %in% input$Channel4) %>% group_by(Month) %>% 
+      summarise(ALWAYS.VOL = sum(ALWAYS.VOL), SOFY.VOL = sum(SOFY.VOL), PRIVATE.VOL = sum(PRIVATE.VOL)
+                ,TDP = sum(TDP), ALWAYS.VAL = sum(ALWAYS.VAL) 
+      )
+      
+  })
+  
+  
   
   channel_subset3 <- reactive({
     req(input$Channel3)
     All_Data %>% filter(Channel %in% input$Channel3) %>% group_by(Month) %>% 
-      summarise(ALWAYS.VOL = sum(ALWAYS.VOL), SOFY.VOL = sum(SOFY.VOL), PRIVATE.VOL = sum(PRIVATE.VOL))
+      summarise(ALWAYS.VOL = sum(ALWAYS.VOL), SOFY.VOL = sum(SOFY.VOL), PRIVATE.VOL = sum(PRIVATE.VOL)
+                ,TDP = sum(TDP)
+      )
   })
   
   #  ALWAYS2 <- reactive({
@@ -395,7 +412,7 @@ server <- function(input, output, session) {
       config(displayModeBar = F) %>% layout(dragmode = "select")
   })
   
-#========================================================Density Plot==============================================================
+  #========================================================Density Plot==============================================================
   output$lineplot3 <- renderPlotly({
     ggplotly(ggplot(data=channel_subset4()) + 
                geom_density(aes_string(x=input$x, group="Channel", fill="Channel"), 
@@ -413,6 +430,24 @@ server <- function(input, output, session) {
                theme(axis.text.x=element_text(hjust=1)))%>%
       config(displayModeBar = F) %>% layout(dragmode = "select")
   })
+  
+  output$placeholder1 <- renderPlotly({
+    plot_ly(data = channel_subset4(), x = ~Month, y = ~get(input$x),
+            type = "scatter", mode = "lines", width = 1100, color = I("red"),
+            name = input$x, title = "Category Trend") %>% 
+      add_trace(x=~Month, y = ~get(input$y), yaxis = "y2",color = I("blue"), name = input$y)%>%
+      add_markers(x=~Month, y = ~get(input$y), 
+                  yaxis = "y2",color = I("blue"), name = input$y)%>%
+      add_markers(x=~Month, y = ~get(input$x),color = I("red"), name = input$x)%>%
+      layout(yaxis = list(
+        showline = FALSE, side = "left", title = input$x, color = "red"
+      ),
+      yaxis2 = list(
+        showline = FALSE, side = "right",overlaying = "y", title = input$y, color = "blue"
+      ),margin = list(l=25,r=50,b=25,t=25,pad=4)
+      )%>%config(displayModeBar = F) %>% layout(dragmode = "select",showlegend=FALSE)
+  })
+  
   
   
   #output$hover_info <- renderUI({
