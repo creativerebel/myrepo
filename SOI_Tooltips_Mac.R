@@ -12,13 +12,13 @@ require(shiny)
 require(shinythemes)
 #==================================================Import Raw Files===============================================
 
-Dist_Comp_item_raw = read.csv("/Users/saurabhdichwalkar/Desktop/SOI/SOI_Always_Competitor_Data_item.csv")
-Dist_Comp_raw = read.csv("/Users/saurabhdichwalkar/Desktop/SOI/SOI_Always_Competitor_Data (1).csv")
-SFT_raw = read.csv("/Users/saurabhdichwalkar/Desktop/SOI/SFT.csv")
-Dist_Always_item_raw = read.csv("/Users/saurabhdichwalkar/Desktop/SOI/SOI_Always_Data_Sample_item.csv")
-Dist_Always_raw = read.csv("/Users/saurabhdichwalkar/Desktop/SOI/SOI_Always_Data_Sample1 (2).csv")
+Dist_Comp_item_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Competitor_Data_item.csv")
+Dist_Comp_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Competitor_Data (1).csv")
+SFT_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SFT.csv")
+Dist_Always_item_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Data_Sample_item.csv")
+Dist_Always_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Data_Sample1 (2).csv")
 
-GRP_raw = read_excel("/Users/saurabhdichwalkar/Desktop/SOI/Explicit_Data.xlsx",sheet = "GRP")
+GRP_raw = read_excel("/home/fractaluser/Documents/SOI/Data Extraction/Explicit_Data.xlsx",sheet = "GRP")
 
 #colnames(GRP_raw) = c("Month","Actual_GRPs_Brand","Actual_GRPs_Category")
 #GRP_raw$adstock[[1]]<- GRP_raw$Actual_GRPs_Brand[[1]]
@@ -30,13 +30,13 @@ GRP_raw = read_excel("/Users/saurabhdichwalkar/Desktop/SOI/Explicit_Data.xlsx",s
 
 #GRP_raw <- GRP_raw %>% select("Month", "adstock")
 
-Macro_raw = read_excel("/Users/saurabhdichwalkar/Desktop/SOI/Explicit_Data.xlsx",sheet = "Macro-economic data")
-TV_reach_raw = read_excel("/Users/saurabhdichwalkar/Desktop/SOI/Explicit_Data.xlsx",sheet = "TV Spends & Reach+1")
+Macro_raw = read_excel("/home/fractaluser/Documents/SOI/Data Extraction/Explicit_Data.xlsx",sheet = "Macro-economic data")
+TV_reach_raw = read_excel("/home/fractaluser/Documents/SOI/Data Extraction/Explicit_Data.xlsx",sheet = "TV Spends & Reach+1")
 
 #======================================================Harmonise===================================================
 
 Dist_TDP_Always = Dist_Always_item_raw %>% 
-  select("X...Time.Name","Area","Brand","Item","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = X...Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
+  select("Time.Name","Area","Brand","Item","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
 
 Dist_TDP_Always$Month = 
   as.Date(paste0("01-",substr(Dist_TDP_Always$Month,start=1,stop=3),"-20",substr(Dist_TDP_Always$Month,start=4,stop=5)),format = "%d-%b-%Y")
@@ -46,13 +46,13 @@ TDP_Always = Dist_TDP_Always %>%
   summarise(TDP = sum(WD))
 
 Dist_Always = Dist_Always_raw %>% 
-  select("X...Time.Name","Area","Brand","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = X...Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
+  select("Time.Name","Area","Brand","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
 Dist_Always$Month = as.Date(paste0("01-",substr(Dist_Always$Month,start=1,stop=3),"-20",substr(Dist_Always$Month,start=4,stop=5)),format = "%d-%b-%Y")
 
 All_Always = inner_join(TDP_Always,Dist_Always)
 
 Dist_TDP_Comp = Dist_Comp_item_raw %>% 
-  select("X...Time.Name","Area","Brand","Item","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = X...Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
+  select("Time.Name","Area","Brand","Item","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
 
 Dist_TDP_Comp$Month = as.Date(paste0("01-",substr(Dist_TDP_Comp$Month,start=1,stop=3),"-20",substr(Dist_TDP_Comp$Month,start=4,stop=5)),format = "%d-%b-%Y")
 
@@ -61,7 +61,7 @@ TDP_Comp = Dist_TDP_Comp %>%
   summarise(TDP = sum(WD))
 
 Dist_Comp = Dist_Comp_raw %>% 
-  select("X...Time.Name","Area","Brand","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = X...Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
+  select("Time.Name","Area","Brand","Volume.Sales..MSU.","Value.Sales..MLC.","Numerical.Distribution","Weighted.Distribution","Price.Per.SU..LC.")%>% rename(ND = Numerical.Distribution,WD = Weighted.Distribution,Month = Time.Name,Channel = Area,Vol = Volume.Sales..MSU.,Val = Value.Sales..MLC.,PPSU = Price.Per.SU..LC.)
 
 Dist_Comp$Month = 
   as.Date(paste0("01-",substr(Dist_Comp$Month,start=1,stop=3),"-20",substr(Dist_Comp$Month,start=4,stop=5)),format = "%d-%b-%Y")
@@ -78,7 +78,7 @@ GRP_raw$Month = as.Date(GRP_raw$Month)
 
 All_Always <- left_join(All_Always,GRP_raw)
 
-SFT <- SFT_raw %>% select("X...Time.Name","Brand","Display","Feature","Share.of.Shelf","Share.of.Features","Share.of.Display") %>% rename(Month = X...Time.Name)
+SFT <- SFT_raw %>% select("Time.Name","Brand","Display","Feature","Share.of.Shelf","Share.of.Features","Share.of.Display") %>% rename(Month = Time.Name)
 
 SFT$Month = as.Date(paste0("01-",substr(SFT$Month,start=1,stop=3),"-20",substr(SFT$Month,start=4,stop=5)),format = "%d-%b-%Y")
 
