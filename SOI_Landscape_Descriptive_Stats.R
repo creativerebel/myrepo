@@ -143,7 +143,7 @@ All_Data <- All_Data %>% rename(SOFY.WD = `SOFY WD`, SOFY.TDP = `SOFY TDP`, SOFY
 
 #=====================================Shiny Starts Here============================================================================
 
-ui <- (navbarPage(title = "Title", 
+ui <- (navbarPage(title = "Data Review", 
                   #fluid = TRUE,
                   #==============================================Tab 1=============================================================                                    
                   tabPanel("Overall Category Trends",
@@ -436,21 +436,27 @@ server <- function(input, output, session) {
       config(displayModeBar = F) %>% layout(dragmode = "select")
   })
   
+  
+  
+  
+  
   output$placeholder1 <- renderPlotly({
+    cort = round(cor(channel_subset5()[,input$x],channel_subset5()[,input$y]),digits = 2)
+  
     plot_ly(data = channel_subset5(), x = ~Month, y = ~get(input$x),
             type = "scatter", mode = "lines", width = 1100, color = I("red"),
-            name = input$x, title = "Category Trend") %>% 
+            name = input$x, title =cort) %>% 
       add_trace(x=~Month, y = ~get(input$y), yaxis = "y2",color = I("blue"), name = input$y)%>%
       add_markers(x=~Month, y = ~get(input$y), 
                   yaxis = "y2",color = I("blue"), name = input$y)%>%
       add_markers(x=~Month, y = ~get(input$x),color = I("red"), name = input$x)%>%
-      layout(yaxis = list(
+      layout(title = paste0("Correlation = ",cort),yaxis = list(
         showline = FALSE, side = "left", title = input$x, color = "red"
       ),
       yaxis2 = list(
         showline = FALSE, side = "right",overlaying = "y", title = input$y, color = "blue"
       ),margin = list(l=25,r=50,b=25,t=25,pad=4)
-      )%>%config(displayModeBar = F) %>% layout(dragmode = "select",showlegend=FALSE)
+      )%>%config(displayModeBar = F) %>% layout(dragmode = "select",showlegend=FALSE)# %>%layout(annotations = a)
   })
   
   
