@@ -10,6 +10,13 @@ require(scales)
 require(plotly)
 require(shiny)
 require(shinythemes)
+library(DT) 
+library(stringr) 
+library(data.table) 
+library(shinyjs) 
+library(shinyFiles)
+library(corrplot)
+
 #==================================================Import Raw Files===============================================
 
 Dist_Comp_item_raw = read.csv("/home/fractaluser/Documents/SOI/Data Extraction/SOI_Always_Competitor_Data_item.csv")
@@ -143,109 +150,164 @@ All_Data <- All_Data %>% rename(SOFY.WD = `SOFY WD`, SOFY.TDP = `SOFY TDP`, SOFY
 
 #=====================================Shiny Starts Here============================================================================
 
-ui <- (navbarPage(title = "Data Review", 
+ui <- function(input, output, session)
+  {navbarPage(title = div("SOI Automation",img(src = "https://fractalanalytics.com/wp-content/uploads/2018/03/Fractal-Logo-WithBL.png", height = "32px",
+                                                   style = "position: relative;bottom: 5px; left: 900px")), theme = shinytheme("cerulean"), 
                   #fluid = TRUE,
                   #==============================================Tab 1=============================================================                                    
-                  tabPanel("Overall Category Trends",
-                           sidebarLayout(
-                             sidebarPanel(  
-                               # Select which Channel to plot
-                               radioButtons(inputId = "brand", 
-                                            label = "Select Brand:",
-                                            choices = c("ALWAYS", "SOFY","PRIVATE","TOTAL CATEGORY"), 
-                                            selected = "TOTAL CATEGORY"),width = 2
-                             ),
-                             mainPanel(
-                               fluidRow(
-                                 plotlyOutput(outputId = "lineplot_vol", height = "275px",width = "100%")),
-                               # fluidRow(
-                               #  plotlyOutput(outputId = "lineplot_price", height = "210px",width = "100%")),
-                               fluidRow(
-                                 splitLayout(cellWidths = c("75%", "22%"), 
-                                             plotlyOutput(outputId = "lineplot_channel", height = "275px"), 
-                                             plotlyOutput(outputId = "single_bar", height = "275px"))
-                               ),width = 10
-                             )
-                           )
-                           
+                  tabPanel("Home",
+                           #tags$head(tags$style(HTML('body, label, input, button, select { font-family: "Calibri";background-color: #fdfdfd;}'))),
+                           textInput("caption", "Create Project Folder"),
+                           shinyDirButton("dir", "Choose directory", "Upload")
                   ),
-                  #==============================================Tab 2=============================================================                  
-                  tabPanel("Competitive Performance",
-                           sidebarLayout(
-                             sidebarPanel(  
-                               # Select which Channel to plot
-                               checkboxGroupInput(inputId = "Channel2", 
-                                                  label = "Select Channel:",
-                                                  choices = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"), 
-                                                  selected = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"))
-                               # selectInput(inputId = "measure2", 
-                               #            label = "Select measure:",
-                               #           choices = c("VAL", "VOL"), 
-                               #          selected = "VOL")
-                               ,width = 2),
-                             mainPanel(
-                               plotlyOutput(outputId = "lineplot2")#,
-                               #plotlyOutput(outputId = "lineplot3")
-                               ,width = 10)
-                           )
+                  #================================================================Data Review Tab=======================================================================
+                  tabPanel("Data Review",
+                           tabsetPanel(type ="tabs",
+                                       tabPanel("Category Level",
+                                                sidebarLayout(
+                                                  sidebarPanel(
+                                                    selectInput("hierarchy","Area Hierarchy:",c("Channel","Customer"))
+                                                    ,checkboxGroupInput("area","Area Selector:",choices = NULL),
+                                                    selectInput("target","Target Variable:",choices = c("Volume" = "ALWAYS.VOL",
+                                                                                                        "Value" = "ALWAYS.VAL"))
+                                                    ,width = 3),
+                                                  mainPanel(
+                                                    plotlyOutput("total_country"),
+                                                    width = 9))
+                                       ),
+                                       tabPanel("Overall Category Trends",
+                                                sidebarLayout(
+                                                  sidebarPanel(  
+                                                    # Select which Channel to plot
+                                                    radioButtons(inputId = "brand", 
+                                                                 label = "Select Brand:",
+                                                                 choices = c("ALWAYS", "SOFY","PRIVATE","TOTAL CATEGORY"), 
+                                                                 selected = "TOTAL CATEGORY"),width = 2
+                                                  ),
+                                                  mainPanel(
+                                                    fluidRow(
+                                                      plotlyOutput(outputId = "lineplot_vol", height = "275px",width = "100%")),
+                                                    # fluidRow(
+                                                    #  plotlyOutput(outputId = "lineplot_price", height = "210px",width = "100%")),
+                                                    fluidRow(
+                                                      splitLayout(cellWidths = c("75%", "22%"), 
+                                                                  plotlyOutput(outputId = "lineplot_channel", height = "275px"), 
+                                                                  plotlyOutput(outputId = "single_bar", height = "275px"))
+                                                    ),width = 10
+                                                  )
+                                                )
+                                                
+                                       ),
+                                       #==============================================Tab 2=============================================================                  
+                                       tabPanel("Competitive Performance",
+                                                sidebarLayout(
+                                                  sidebarPanel(  
+                                                    # Select which Channel to plot
+                                                    checkboxGroupInput(inputId = "Channel2", 
+                                                                       label = "Select Channel:",
+                                                                       choices = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"), 
+                                                                       selected = c("PHARMACIES", "TOTAL GROCERIES", "SUPERMARKETS"))
+                                                    # selectInput(inputId = "measure2", 
+                                                    #            label = "Select measure:",
+                                                    #           choices = c("VAL", "VOL"), 
+                                                    #          selected = "VOL")
+                                                    ,width = 2),
+                                                  mainPanel(
+                                                    plotlyOutput(outputId = "lineplot2")#,
+                                                    #plotlyOutput(outputId = "lineplot3")
+                                                    ,width = 10)
+                                                )
+                                       ),
+                                       #==============================================Tab 3=============================================================                                    
+                                       tabPanel("Descriptive Statistics",
+                                                sidebarLayout(
+                                                  sidebarPanel(  
+                                                    # Select which Channel to plot
+                                                    
+                                                    checkboxGroupInput(inputId = "Channel4", 
+                                                                       label = "Select Channel:",
+                                                                       choices = c(unique(as.character(All_Data$Channel))), 
+                                                                       selected = c(unique(as.character(All_Data$Channel))))
+                                                    ,selectInput(inputId = "x", 
+                                                                 label = "Select Variable 1:",
+                                                                 choices = c(colnames(All_Data%>%select(-Month,-Channel,-Brand))), 
+                                                                 selected = "ALWAYS.VOL")
+                                                    ,selectInput(inputId = "y", 
+                                                                 label = "Select Variable 2:",
+                                                                 choices = c(colnames(All_Data%>%select(-Month,-Channel,-Brand))), 
+                                                                 selected = "SOFY.VOL")
+                                                    ,width = 2),
+                                                  mainPanel(
+                                                    div(
+                                                      style = "position:relative",
+                                                      fluidRow(
+                                                        splitLayout(cellWidths = c("47%", "50%"), 
+                                                                    plotlyOutput(outputId = "lineplot3", height = "275px"), 
+                                                                    plotlyOutput(outputId = "scatterplot", height = "275px"))
+                                                      )
+                                                      ,fluidRow(
+                                                        splitLayout(#cellWidths = c("75%", "22%"), 
+                                                          plotlyOutput(outputId = "placeholder1", height = "275px") )
+                                                        #             ,plotlyOutput(outputId = "placeholder2", height = "275px")
+                                                      )
+                                                    ),
+                                                    width = 10
+                                                    # verbatimTextOutput("value")
+                                                  )
+                                                )
+                                       ),
+                                       #==============================================Tab 4=============================================================                  
+                                       tabPanel("Placeholder",
+                                                sidebarLayout(
+                                                  sidebarPanel(  
+                                                    
+                                                  ),
+                                                  mainPanel(
+                                                    div(
+                                                      style = "position:relative"
+                                                    ),
+                                                    width = 7
+                                                    # verbatimTextOutput("value")
+                                                  )
+                                                )
+                                       ))
                   ),
-                  #==============================================Tab 3=============================================================                                    
-                  tabPanel("Descriptive Statistics",
-                           sidebarLayout(
-                             sidebarPanel(  
-                               # Select which Channel to plot
-                               
-                               checkboxGroupInput(inputId = "Channel4", 
-                                                  label = "Select Channel:",
-                                                  choices = c(unique(as.character(All_Data$Channel))), 
-                                                  selected = c(unique(as.character(All_Data$Channel))))
-                               ,selectInput(inputId = "x", 
-                                            label = "Select Variable 1:",
-                                            choices = c(colnames(All_Data%>%select(-Month,-Channel,-Brand))), 
-                                            selected = "ALWAYS.VOL")
-                               ,selectInput(inputId = "y", 
-                                            label = "Select Variable 2:",
-                                            choices = c(colnames(All_Data%>%select(-Month,-Channel,-Brand))), 
-                                            selected = "SOFY.VOL")
-                               ,width = 2),
-                             mainPanel(
-                               div(
-                                 style = "position:relative",
-                                 fluidRow(
-                                   splitLayout(cellWidths = c("47%", "50%"), 
-                                               plotlyOutput(outputId = "lineplot3", height = "275px"), 
-                                               plotlyOutput(outputId = "scatterplot", height = "275px"))
-                                 )
-                                 ,fluidRow(
-                                   splitLayout(#cellWidths = c("75%", "22%"), 
-                                     plotlyOutput(outputId = "placeholder1", height = "275px") )
-                                   #             ,plotlyOutput(outputId = "placeholder2", height = "275px")
-                                 )
-                               ),
-                               width = 10
-                               # verbatimTextOutput("value")
-                             )
-                           )
-                  ),
-                  #==============================================Tab 4=============================================================                  
-                  tabPanel("Placeholder",
-                           sidebarLayout(
-                             sidebarPanel(  
-                               
-                             ),
-                             mainPanel(
-                               div(
-                                 style = "position:relative"
-                               ),
-                               width = 7
-                               # verbatimTextOutput("value")
-                             )
-                           )
-                  )
+                  tabPanel("Modelling"),
+                  tabPanel("Output & Results"),
+                  tags$style(HTML(".navbar .navbar-nav {float: left; font-size: 13px; margin:0% } 
+                                 .navbar .navbar-header {float: left; font-size: 16px} 
+                                 .navbar-default .navbar-brand {font-size: 23px; margin:0% }"))
+                  
 )
-)
+}
 
 server <- function(input, output, session) {
+  
+  category_subset <- reactive({
+    req(input$area)
+    All_Data %>% filter(All_Data[[input$hierarchy]] %in% input$area) %>% group_by(Month) %>% 
+      summarise(ALWAYS.VOL = sum(ALWAYS.VOL), ALWAYS.VAL = sum(ALWAYS.VAL))
+  })
+  
+  observeEvent(input$hierarchy, {
+    column_levels <- as.character(sort(unique(All_Data[[input$hierarchy]])))
+    updateCheckboxGroupInput(session, "area", choices = column_levels, selected = column_levels)
+  })
+  
+  output$total_country <- renderPlotly({
+    ggplotly(ggplot(data = category_subset(), aes_string(x = "Month", y = input$target)) + 
+               geom_line(color = "#CC6666") + 
+               geom_point(color = "#CC6666") +
+               ylab(NULL)  + 
+               xlab(NULL)+ 
+               facet_grid(~input$area) +
+               theme_light() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+               theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,
+                                                vjust=.5,face="plain"),
+                     legend.title = element_text(colour="black", size = 10, face='bold')
+                     ,legend.text = element_text(colour="black", size = 8, face='bold')))%>%
+      config(displayModeBar = F) %>% layout(dragmode = "select")
+  })
   
   # for display of histogram in the "Widget & Sidepar page"
   
@@ -369,7 +431,7 @@ server <- function(input, output, session) {
                geom_line() + 
                ylab(input$brand)  + 
                xlab(NULL)+
-               theme_linedraw() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
+               theme_light() + scale_x_date(breaks = "3 months",labels = date_format("%b-%Y"))+
                theme(axis.text.x = element_text(colour="black",size=8,angle=90,hjust=.5,
                                                 vjust=.5,face="plain"),legend.title = element_text(colour="black", size = 10, face='bold')
                      ,legend.text = element_text(colour="black", size = 8, face='bold')))%>%
@@ -442,7 +504,7 @@ server <- function(input, output, session) {
   
   output$placeholder1 <- renderPlotly({
     cort = round(cor(channel_subset5()[,input$x],channel_subset5()[,input$y]),digits = 2)
-  
+    
     plot_ly(data = channel_subset5(), x = ~Month, y = ~get(input$x),
             type = "scatter", mode = "lines", width = 1100, color = I("red"),
             name = input$x, title =cort) %>% 
